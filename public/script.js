@@ -5,11 +5,22 @@ const socket = io();
 const createLobbyBtn = document.getElementById('createLobbyBtn');
 const lobbiesContainer = document.getElementById('lobbiesContainer');
 const usernameInput = document.getElementById('usernameInput');
+const activeBtn = document.querySelector('.riot-btn');
 
 // Sayfa ilk açıldığında rastgele bir isim ata (Test kolaylığı için)
-if(usernameInput.value === "Oyuncu_") {
+if (usernameInput.value === "Oyuncu_") {
     usernameInput.value = "Oyuncu_" + Math.floor(Math.random() * 9000 + 1000);
 }
+
+// AKTİF OL BUTONU DÜZELTMESİ: İsmi onaylar ve butona basıldığında geri bildirim verir
+activeBtn.addEventListener('click', () => {
+    const username = usernameInput.value.trim();
+    if (!username) {
+        alert("Lütfen geçerli bir Riot Nickname girin!");
+        return;
+    }
+    alert(`Başarıyla '${username}' olarak aktif oldunuz! Artık oda kurabilir veya katılabilirsiniz.`);
+});
 
 // 1. ODA OLUŞTURMA TETİKLEYİCİSİ
 createLobbyBtn.addEventListener('click', () => {
@@ -18,8 +29,8 @@ createLobbyBtn.addEventListener('click', () => {
     const targetRank = document.getElementById('targetRank').value;
     const targetRole = document.getElementById('targetRole').value;
 
-    if(!username) {
-        alert("Lütfen önce bir kullanıcı adı girin!");
+    if (!username || username.startsWith("Oyuncu_") && usernameInput.value.trim() === "") {
+        alert("Lütfen önce sağ üstten bir kullanıcı adı belirleyin!");
         return;
     }
 
@@ -27,7 +38,7 @@ createLobbyBtn.addEventListener('click', () => {
     socket.emit('createLobby', { username, gameType, targetRank, targetRole });
 });
 
-// 2. SUNUCUDAN CANLI LOBİ GÜNCELLEMELERİNİ ALMA
+// 2. SUNUCUDAN CANLI LOBİ GÜNCELLEMELERLERİNİ ALMA
 socket.on('updateLobbies', (lobbies) => {
     renderLobbies(lobbies);
 });
@@ -35,12 +46,13 @@ socket.on('updateLobbies', (lobbies) => {
 // Sayfa yüklendiğinde mevcut odaları API'den çek
 fetch('/api/lobbies')
     .then(res => res.json())
-    .then(lobbies => renderLobbies(lobbies));
+    .then(lobbies => renderLobbies(lobbies))
+    .catch(err => console.error("Lobiler yüklenirken hata oluştu:", err));
 
 function renderLobbies(lobbies) {
     lobbiesContainer.innerHTML = "";
     
-    if(lobbies.length === 0) {
+    if (!lobbies || lobbies.length === 0) {
         lobbiesContainer.innerHTML = `<p style="color: #888; grid-column: 1/-1;">Henüz aktif oda yok, ilk odayı sen kur!</p>`;
         return;
     }
@@ -95,5 +107,6 @@ socket.on('receiveInvite', (data) => {
             notifBox.classList.add('hidden');
         };
         
-        // 10 saniye sonra bildirimi gizle
         setTimeout(() => notifBox.classList.add('hidden'), 10000);
+    }
+});
