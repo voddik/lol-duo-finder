@@ -13,8 +13,8 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 
 // MONGOOSE VERİTABANI BAĞLANTISI
-// Lütfen BURAYA_KENDI_SIFRENI_YAZ kısmını kendi şifrenle değiştir
-const mongoURI = "mongodb+srv://voddik:BURAYA_KENDI_SIFRENI_YAZ@cluster0.qfmerp6.mongodb.net/lolduo?retryWrites=true&w=majority&appName=Cluster0";
+// Alttaki satırda bulunan BURAYA_KENDI_SIFRENI_YAZ kısmını silip kendi şifreni yaz
+const mongoURI = "mongodb+srv://voddik:17941407058baran@cluster0.qfmerp6.mongodb.net/lolduo?retryWrites=true&w=majority&appName=Cluster0";
 
 mongoose.connect(mongoURI)
     .then(() => console.log("MongoDB Atlas Bağlantısı Başarılı."))
