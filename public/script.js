@@ -1,49 +1,99 @@
 JavaScript
-let loggedInUser = null;
-window.onload = () => { checkRiotLogin(); fetchPlayersFromServer(); };
+const socket = io();
 
-function checkRiotLogin() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const username = urlParams.get('username');
-    if (urlParams.get('login') === 'success' && username) {
-        loggedInUser = { name: username, rank: "Doğrulanıyor..." };
-        document.getElementById("nav-auth").innerHTML = `<span style="color:#fff;">Hoş geldin, ${loggedInUser.name}</span>`;
-        document.getElementById("quick-ad-section").style.display = "block";
-        document.getElementById("user-display-name").innerText = loggedInUser.name;
-        window.history.replaceState({}, document.title, "/");
+// HTML Elemanları
+const createLobbyBtn = document.getElementById('createLobbyBtn');
+const lobbiesContainer = document.getElementById('lobbiesContainer');
+const usernameInput = document.getElementById('usernameInput');
+
+// Sayfa ilk açıldığında rastgele bir isim ata (Test kolaylığı için)
+if(usernameInput.value === "Oyuncu_") {
+    usernameInput.value = "Oyuncu_" + Math.floor(Math.random() * 9000 + 1000);
+}
+
+// 1. ODA OLUŞTURMA TETİKLEYİCİSİ
+createLobbyBtn.addEventListener('click', () => {
+    const username = usernameInput.value.trim();
+    const gameType = document.getElementById('gameType').value;
+    const targetRank = document.getElementById('targetRank').value;
+    const targetRole = document.getElementById('targetRole').value;
+
+    if(!username) {
+        alert("Lütfen önce bir kullanıcı adı girin!");
+        return;
     }
-}
-function loginWithRiot() { window.location.href = '/auth/riot'; }
 
-async function fetchPlayersFromServer() {
-    try {
-        const response = await fetch('/api/players');
-        const players = await response.json();
-        displayPlayers(players);
-    } catch (e) { console.log("Hata:", e); }
-}
-function displayPlayers(data) {
-    const list = document.getElementById("player-list");
-    list.innerHTML = "";
-    data.forEach(p => {
-        list.innerHTML += `
-            <div class="card">
-                <div class="card-user">${p.name}</div>
-                <div class="badges"><span class="badge rank">${p.rank}</span><span class="badge role">${p.role}</span></div>
-                <div class="card-note">${p.note}</div>
-                <a href="#" class="btn-discord">Discord: ${p.discord}</a>
-            </div>`;
+    // Sunucuya lobi oluşturma mesajı gönder
+    socket.emit('createLobby', { username, gameType, targetRank, targetRole });
+});
+
+// 2. SUNUCUDAN CANLI LOBİ GÜNCELLEMELERİNİ ALMA
+socket.on('updateLobbies', (lobbies) => {
+    renderLobbies(lobbies);
+});
+
+// Sayfa yüklendiğinde mevcut odaları API'den çek
+fetch('/api/lobbies')
+    .then(res => res.json())
+    .then(lobbies => renderLobbies(lobbies));
+
+function renderLobbies(lobbies) {
+    lobbiesContainer.innerHTML = "";
+    
+    if(lobbies.length === 0) {
+        lobbiesContainer.innerHTML = `<p style="color: #888; grid-column: 1/-1;">Henüz aktif oda yok, ilk odayı sen kur!</p>`;
+        return;
+    }
+
+    lobbies.forEach(lobby => {
+        const lobbyCard = document.createElement('div');
+        lobbyCard.className = 'lobby-card';
+        
+        lobbyCard.innerHTML = `
+            <div class="lobby-header">
+                <span class="badge">${lobby.gameType}</span>
+                <span class="specs">${lobby.targetRank} - ${lobby.targetRole}</span>
+            </div>
+            <div class="lobby-body">
+                <p><strong>Kurucu:</strong> ${lobby.creator}</p>
+                <p><strong>Üyeler (${lobby.players.length}/5):</strong> ${lobby.players.join(', ')}</p>
+            </div>
+            <div class="lobby-actions">
+                <button onclick="joinLobby('${lobby._id}')" class="join-btn" ${lobby.players.length >= 5 ? 'disabled' : ''}>
+                    ${lobby.players.length >= 5 ? 'Dolu' : 'Lobiye Katıl'}
+                </button>
+                <button onclick="invitePlayer('${lobby._id}', '${lobby.creator}')" class="invite-btn">Davet At</button>
+            </div>
+        `;
+        lobbiesContainer.appendChild(lobbyCard);
     });
 }
-async function submitQuickAd() {
-    if(!loggedInUser) return;
-    const newAd = {
-        name: loggedInUser.name, rank: "Gold", role: document.getElementById("ad-role").value,
-        note: document.getElementById("ad-note").value || "Duo aranıyor.", discord: document.getElementById("ad-discord").value || "Yok"
-    };
-    try {
-        await fetch('/api/players', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newAd) });
-        document.getElementById("ad-note").value = "";
-        fetchPlayersFromServer();
-    } catch (e) { console.log(e); }
-}
+
+// LOBİYE KATILMA FONKSİYONU
+window.joinLobby = function(lobbyId) {
+    const username = usernameInput.value.trim();
+    socket.emit('joinLobby', { lobbyId, username });
+};
+
+// DAVET ETME SİMÜLASYONU
+window.invitePlayer = function(lobbyId, creator) {
+    const username = usernameInput.value.trim();
+    alert(`${creator} isimli oyuncuya davet isteği gönderildi!`);
+    socket.emit('sendInvite', { from: username, to: creator, lobbyId });
+};
+
+// CANLI DAVET ALMA BİLDİRİMİ
+socket.on('receiveInvite', (data) => {
+    const myUsername = usernameInput.value.trim();
+    if (data.to === myUsername && data.from !== myUsername) {
+        const notifBox = document.getElementById('inviteNotification');
+        document.getElementById('inviteText').innerText = `${data.from} seni lobisine davet ediyor!`;
+        notifBox.classList.remove('hidden');
+        
+        document.getElementById('acceptInviteBtn').onclick = function() {
+            joinLobby(data.lobbyId);
+            notifBox.classList.add('hidden');
+        };
+        
+        // 10 saniye sonra bildirimi gizle
+        setTimeout(() => notifBox.classList.add('hidden'), 10000);
