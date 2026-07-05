@@ -4,46 +4,61 @@ HTML
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LoL Duo - Kolay Takım Arkadaşı Bul</title>
+    <title>LoL Duo Finder - Canlı Lobiler</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">LoL<span>Duo</span></div>
-        <div class="nav-actions" id="nav-auth">
-            <button class="btn-riot" onclick="loginWithRiot()">Riot Hesabı ile Giriş Yap</button>
+    <header>
+        <div class="logo">LoL<span class="red">Duo</span></div>
+        <div class="user-panel">
+            <input type="text" id="usernameInput" placeholder="Riot Nickname girin..." value="Oyuncu_">
+            <button class="riot-btn">Aktif Ol</button>
         </div>
-    </nav>
-    <main class="container">
-        <section class="search-bar">
-            <select id="filter-rank">
-                <option value="">Tüm Ligler</option>
-                <option value="Iron">Demir</option><option value="Bronze">Bronz</option><option value="Silver">Gümüş</option>
-                <option value="Gold">Altın</option><option value="Platinum">Platin</option><option value="Emerald">Zümrüt</option>
-                <option value="Diamond">Elmas</option><option value="Master+">Ustalık+</option>
-            </select>
-            <select id="filter-role">
-                <option value="">Tüm Roller</option>
-                <option value="Top">Üst Koridor</option><option value="Jungle">Orman</option>
-                <option value="Mid">Orta Koridor</option><option value="ADC">Nişancı</option><option value="Support">Destek</option>
-            </select>
-            <button class="btn-search" onclick="filterPlayers()">Oyuncu Ara</button>
-        </section>
-        <section class="quick-ad-box" id="quick-ad-section" style="display: none;">
-            <h3>Aktif Duo İlanı Ver</h3>
-            <div class="quick-ad-inputs">
-                <span id="user-display-name" class="user-tag">SihirdarAdı#TR1</span>
-                <select id="ad-role">
-                    <option value="Mid">Oynayacağınız Rol</option>
-                    <option value="Top">Üst Koridor</option><option value="Jungle">Orman</option>
-                    <option value="Mid">Orta Koridor</option><option value="ADC">Nişancı</option><option value="Support">Destek</option>
+    </header>
+
+    <main>
+        <section class="create-lobby-section">
+            <h3>🎮 Canlı Oda (Lobi) Kur</h3>
+            <div class="lobby-form">
+                <select id="gameType">
+                    <option value="Dereceli Solo/Duo">Dereceli Solo/Duo</option>
+                    <option value="Dereceli Esnek">Dereceli Esnek</option>
+                    <option value="Normal Seçimlik">Normal Seçimlik</option>
+                    <option value="ARAM">ARAM</option>
                 </select>
-                <input type="text" id="ad-discord" placeholder="Discord Adın">
-                <input type="text" id="ad-note" placeholder="Kısa bir not (Örn: Win streak serisi)">
-                <button class="btn-publish" onclick="submitQuickAd()">Yayınla</button>
+                <select id="targetRank">
+                    <option value="Tüm Ligler">Her Lig</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                    <option value="Diamond">Diamond</option>
+                    <option value="Master+">Master+</option>
+                </select>
+                <select id="targetRole">
+                    <option value="Tüm Roller">Her Rol</option>
+                    <option value="Top">Top</option>
+                    <option value="Jungle">Jungle</option>
+                    <option value="Mid">Mid</option>
+                    <option value="ADC">ADC</option>
+                    <option value="Support">Support</option>
+                </select>
+                <button id="createLobbyBtn" class="primary-btn">Lobi Oluştur</button>
             </div>
         </section>
-        <section class="player-grid" id="player-list"></section>
+
+        <section class="lobbies-section">
+            <h2>🔴 Aktif Odalar / Lobiler</h2>
+            <div id="lobbiesContainer" class="lobbies-grid">
+                <p style="color: #888;">Henüz aktif oda yok, ilk odayı sen kur!</p>
+            </div>
+        </section>
     </main>
+
+    <div id="inviteNotification" class="notification hidden">
+        <p id="inviteText"></p>
+        <button id="acceptInviteBtn">Katıl</button>
+    </div>
+
     <script src="script.js"></script>
+</body>
+</html>
