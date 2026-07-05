@@ -1,0 +1,49 @@
+HTML
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoL Duo - Kolay Takım Arkadaşı Bul</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">LoL<span>Duo</span></div>
+        <div class="nav-actions" id="nav-auth">
+            <button class="btn-riot" onclick="loginWithRiot()">Riot Hesabı ile Giriş Yap</button>
+        </div>
+    </nav>
+    <main class="container">
+        <section class="search-bar">
+            <select id="filter-rank">
+                <option value="">Tüm Ligler</option>
+                <option value="Iron">Demir</option><option value="Bronze">Bronz</option><option value="Silver">Gümüş</option>
+                <option value="Gold">Altın</option><option value="Platinum">Platin</option><option value="Emerald">Zümrüt</option>
+                <option value="Diamond">Elmas</option><option value="Master+">Ustalık+</option>
+            </select>
+            <select id="filter-role">
+                <option value="">Tüm Roller</option>
+                <option value="Top">Üst Koridor</option><option value="Jungle">Orman</option>
+                <option value="Mid">Orta Koridor</option><option value="ADC">Nişancı</option><option value="Support">Destek</option>
+            </select>
+            <button class="btn-search" onclick="filterPlayers()">Oyuncu Ara</button>
+        </section>
+        <section class="quick-ad-box" id="quick-ad-section" style="display: none;">
+            <h3>Aktif Duo İlanı Ver</h3>
+            <div class="quick-ad-inputs">
+                <span id="user-display-name" class="user-tag">SihirdarAdı#TR1</span>
+                <select id="ad-role">
+                    <option value="Mid">Oynayacağınız Rol</option>
+                    <option value="Top">Üst Koridor</option><option value="Jungle">Orman</option>
+                    <option value="Mid">Orta Koridor</option><option value="ADC">Nişancı</option><option value="Support">Destek</option>
+                </select>
+                <input type="text" id="ad-discord" placeholder="Discord Adın">
+                <input type="text" id="ad-note" placeholder="Kısa bir not (Örn: Win streak serisi)">
+                <button class="btn-publish" onclick="submitQuickAd()">Yayınla</button>
+            </div>
+        </section>
+        <section class="player-grid" id="player-list"></section>
+    </main>
+    <script src="script.js"></script>

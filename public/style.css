@@ -1,0 +1,21 @@
+:root { --bg: #090c10; --card: #151b23; --border: #21262d; --riot-red: #d13639; --text: #c9d1d9; --accent: #58a6ff; }
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+body { background-color: var(--bg); color: var(--text); padding-bottom: 50px; }
+.navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 5%; background: var(--card); border-bottom: 1px solid var(--border); }
+.logo { font-size: 22px; font-weight: 700; color: #fff; }
+.logo span { color: var(--riot-red); }
+.btn-riot { background-color: var(--riot-red); color: white; border: none; padding: 10px 18px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+.container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+.search-bar, .quick-ad-inputs { display: flex; gap: 12px; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 25px; flex-wrap: wrap; }
+select, input { flex: 1; min-width: 150px; padding: 10px; background: var(--bg); border: 1px solid var(--border); color: #fff; border-radius: 6px; }
+.btn-search, .btn-publish { background: var(--accent); color: #000; font-weight: 600; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; }
+.btn-publish { background: #238636; color: #fff; }
+.player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--border); padding: 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 10px; }
+.card-user { font-weight: 600; color: #fff; }
+.badges { display: flex; gap: 6px; }
+.badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.rank { background: #38285c; color: #e2d9f3; }
+.role { background: #1f334d; color: #8ab4f8; }
+.card-note { font-size: 13px; color: #8b949e; min-height: 32px; }
+.btn-discord { background: #5865F2; color: #fff; text-decoration: none; text-align: center; padding: 8px; border-radius: 6px; font-size: 13px; }
