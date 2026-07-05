@@ -1,59 +1,104 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const mongoose = require('mongoose');
-const axios = require('axios');
 const path = require('path');
 
 const app = express();
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Not: Alttaki bağlantı Render ortamında geçicidir, sistemi ayağa kaldırmak için ekledik.
-mongoose.connect('mongodb://localhost:27017/lolduo')
-    .then(() => console.log('MongoDB Bağlantısı Başarılı.'))
-    .catch(err => console.error('Bağlantı hatası:', err));
-
-const PlayerSchema = new mongoose.Schema({
-    name: String, rank: String, role: String, note: String, discord: String,
-    createdAt: { type: Date, default: Date.now, expires: 86400 }
-});
-const Player = mongoose.model('Player', PlayerSchema);
-
-const RIOT_CLIENT_ID = 'SENIN_RIOT_CLIENT_ID';
-const RIOT_CLIENT_SECRET = 'SENIN_RIOT_CLIENT_SECRET';
-const REDIRECT_URI = 'http://localhost:3000/auth/callback';
-
-app.get('/api/players', async (req, res) => {
-    try { const players = await Player.find().sort({ createdAt: -1 }); res.json(players); } 
-    catch (err) { res.status(500).json({ error: 'Hata' }); }
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: "*" }
 });
 
-app.post('/api/players', async (req, res) => {
-    try { const newPlayer = new Player(req.body); await newPlayer.save(); res.status(201).json(newPlayer); } 
-    catch (err) { res.status(400).json({ error: 'Hata' }); }
-});
-
-app.get('/auth/riot', (req, res) => {
-    const riotAuthUrl = `https://auth.riotgames.com/authorize?client_id=${RIOT_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=openid+offline_access`;
-    res.redirect(riotAuthUrl);
-});
-
-app.get('/auth/callback', async (req, res) => {
-    const { code } = req.query;
-    if (!code) return res.status(400).send('Kod yok.');
-    try {
-        const tokenResponse = await axios.post('https://auth.riotgames.com/token', {
-            grant_type: 'authorization_code', code: code, redirect_uri: REDIRECT_URI,
-            client_id: RIOT_CLIENT_ID, client_secret: RIOT_CLIENT_SECRET
-        });
-        const accessToken = tokenResponse.data.access_token;
-        const userResponse = await axios.get('https://europe.api.riotgames.com/riot/account/v1/accounts/by-puuid/me', {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        const riotName = `${userResponse.data.gameName}#${userResponse.data.tagLine}`;
-        res.redirect(`/?login=success&username=${encodeURIComponent(riotName)}`);
-    } catch (error) { res.status(500).send('Riot hatası.'); }
-});
-
-// Render.com'un dinamik portunu algılaması için PORT ayarı
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Sunucu ${PORT} portunda aktif.`));
+
+// MONGOOSE VERİTABANI BAĞLANTISI
+// Lütfen BURAYA_KENDI_SIFRENI_YAZ kısmını kendi şifrenle değiştir
+const mongoURI = "mongodb+srv://voddik:BURAYA_KENDI_SIFRENI_YAZ@cluster0.qfmerp6.mongodb.net/lolduo?retryWrites=true&w=majority&appName=Cluster0";
+
+mongoose.connect(mongoURI)
+    .then(() => console.log("MongoDB Atlas Bağlantısı Başarılı."))
+    .catch(err => console.error("Veritabanı bağlantı hatası:", err));
+
+// Lobi Modeli (Veritabanında Odaları Tutmak İçin)
+const LobbySchema = new mongoose.Schema({
+    creator: String,
+    gameType: String,
+    targetRank: String,
+    targetRole: String,
+    players: [String], // Lobiye katılanların listesi
+    createdAt: { type: Date, default: Date.now }
+});
+const Lobby = mongoose.model('Lobby', LobbySchema);
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+
+// API: Mevcut Lobileri Çekme
+app.get('/api/lobbies', async (req, res) => {
+    try {
+        const lobbies = await Lobby.find().sort({ createdAt: -1 });
+        res.json(lobbies);
+    } catch (err) {
+        res.status(500).json({ error: "Lobiler çekilemedi" });
+    }
+});
+
+// CANLI BAĞLANTI (SOCKET.IO) ODALARI VE DAVETLERİ
+io.on('connection', (socket) => {
+    console.log('Bir kullanıcı bağlandı:', socket.id);
+
+    // Yeni Oda Kurulduğunda
+    socket.on('createLobby', async (data) => {
+        try {
+            const newLobby = new Lobby({
+                creator: data.username,
+                gameType: data.gameType,
+                targetRank: data.targetRank,
+                targetRole: data.targetRole,
+                players: [data.username]
+            });
+            await newLobby.save();
+            
+            // Tüm herkese yeni lobiyi bildir
+            const allLobbies = await Lobby.find().sort({ createdAt: -1 });
+            io.emit('updateLobbies', allLobbies);
+        } catch (err) {
+            console.error(err);
+        }
+    });
+
+    // Bir Lobiye Katılma İsteği
+    socket.on('joinLobby', async (data) => {
+        try {
+            const lobby = await Lobby.findById(data.lobbyId);
+            if (lobby && !lobby.players.includes(data.username) && lobby.players.length < 5) {
+                lobby.players.push(data.username);
+                await lobby.save();
+                
+                const allLobbies = await Lobby.find().sort({ createdAt: -1 });
+                io.emit('updateLobbies', allLobbies);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    });
+
+    // Boştaki Oyuncuya Davet Atma Simülasyonu
+    socket.on('sendInvite', (data) => {
+        // Hedef oyuncuya canlı bildirim yollar
+        io.emit('receiveInvite', {
+            from: data.from,
+            to: data.to,
+            lobbyId: data.lobbyId
+        });
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Kullanıcı ayrıldı:', socket.id);
+    });
+});
+
+server.listen(PORT, () => {
+    console.log(`Sunucu ${PORT} portunda aktif.`);
+});
